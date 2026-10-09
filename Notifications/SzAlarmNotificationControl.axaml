@@ -1,0 +1,40 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="SzAlarmPlugin.Notifications.SzAlarmNotificationControl">
+    <!-- 卡片拉伸填满承载区（提醒区/课表宽度），上限 720，滚动栏即可跟随变宽 -->
+    <Border CornerRadius="10"
+            Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+            Padding="14,12"
+            MaxWidth="720"
+            HorizontalAlignment="Stretch">
+        <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="12" VerticalAlignment="Center">
+            <!-- 左侧预警图标 -->
+            <Border Grid.Column="0" Width="44" Height="44"
+                    Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                    CornerRadius="8">
+                <Image x:Name="Icon" Width="36" Height="36" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+            </Border>
+
+            <!-- 中间：灾种+级别标题（强调字号，单行，垂直居中，不裁切） -->
+            <TextBlock Grid.Column="1" x:Name="Title"
+                       FontSize="{DynamicResource FontSizeEmphasis}"
+                       FontWeight="Bold"
+                       VerticalAlignment="Center" TextWrapping="NoWrap" MaxLines="1"
+                       LineHeight="32" ClipToBounds="False"/>
+
+            <!-- 右侧：单行横向滚动正文（正文字号，跟随可用宽度，至少 240）。
+                 仅做“水平方向”裁切（由代码设置 Clip 几何），纵向完全不裁，避免顶部被切。 -->
+            <Border Grid.Column="2" x:Name="ScrollViewport" MinWidth="240"
+                    HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                <TextBlock x:Name="ScrollText"
+                           FontSize="{DynamicResource FontSizeContent}"
+                           VerticalAlignment="Center" HorizontalAlignment="Left"
+                           TextWrapping="NoWrap" MaxLines="1"
+                           ClipToBounds="False"/>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>

@@ -1,0 +1,145 @@
+<controls:ComponentBase x:TypeArguments="models:SzAlarmComponentSettings"
+                        x:Class="SzAlarmPlugin.Components.SzAlarmComponentSettingsControl"
+                        xmlns="https://github.com/avaloniaui"
+                        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                        xmlns:controls="clr-namespace:ClassIsland.Core.Abstractions.Controls;assembly=ClassIsland.Core"
+                        xmlns:models="clr-namespace:SzAlarmPlugin.Models"
+                        xmlns:local="clr-namespace:SzAlarmPlugin.Components">
+    <controls:ComponentBase.Resources>
+        <Thickness x:Key="SectionMargin">0,0,0,8</Thickness>
+        <!-- Fluent 图标字体（ClassIsland 原生风格；Win10 回退到 MDL2） -->
+        <FontFamily x:Key="FluentIcon">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+    </controls:ComponentBase.Resources>
+    <controls:ComponentBase.Styles>
+        <Style Selector="Expander">
+            <Setter Property="Margin" Value="{StaticResource SectionMargin}"/>
+        </Style>
+    </controls:ComponentBase.Styles>
+    <ScrollViewer DataContext="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=local:SzAlarmComponentSettingsControl}}">
+        <StackPanel Margin="8" Spacing="8">
+            <!-- 头部说明 -->
+            <Border Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                    CornerRadius="6" Padding="12,10" Margin="0,0,0,4">
+                <StackPanel Spacing="2">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="&#xE7BA;" FontFamily="{StaticResource FluentIcon}" FontSize="18" VerticalAlignment="Center"/>
+                        <TextBlock Text="深圳气象预警 · 组件设置" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Text="配置预警的显示内容、图标来源与无预警占位。"
+                               FontSize="12" Opacity="0.7" Margin="26,0,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- 显示模式 -->
+            <Expander IsExpanded="True">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="&#xE74C;" FontFamily="{StaticResource FluentIcon}" FontSize="15" VerticalAlignment="Center"/>
+                        <TextBlock Text="显示模式" FontWeight="Bold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Expander.Header>
+                <StackPanel Spacing="6" Margin="4,6,4,2">
+                    <TextBlock Text="下列选择在「区域过滤」之后才生效。" FontSize="12" Opacity="0.7"/>
+                    <ComboBox SelectedIndex="{Binding Settings.DisplayMode, Mode=TwoWay}">
+                        <ComboBoxItem Content="所有预警"/>
+                        <ComboBoxItem Content="最高级别预警（含并列）"/>
+                        <ComboBoxItem Content="最新一条预警"/>
+                        <ComboBoxItem Content="每种预警中级别最高的一条"/>
+                    </ComboBox>
+                </StackPanel>
+            </Expander>
+
+            <!-- 显示元素 -->
+            <Expander IsExpanded="True">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="&#xE72E;" FontFamily="{StaticResource FluentIcon}" FontSize="15" VerticalAlignment="Center"/>
+                        <TextBlock Text="显示元素" FontWeight="Bold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Expander.Header>
+                <StackPanel Spacing="6" Margin="4,6,4,2">
+                    <CheckBox Content="显示预警图标" IsChecked="{Binding Settings.ShowIcon, Mode=TwoWay}"/>
+                    <CheckBox Content="显示预警类型（如：台风）" IsChecked="{Binding Settings.ShowText, Mode=TwoWay}"/>
+                    <CheckBox Content="显示预警级别（如：橙色）" IsChecked="{Binding Settings.ShowLevel, Mode=TwoWay}"/>
+                </StackPanel>
+            </Expander>
+
+            <!-- 图标与外观 -->
+            <Expander IsExpanded="False">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="&#xE78B;" FontFamily="{StaticResource FluentIcon}" FontSize="15" VerticalAlignment="Center"/>
+                        <TextBlock Text="图标与外观" FontWeight="Bold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Expander.Header>
+                <StackPanel Spacing="8" Margin="4,6,4,2">
+                    <CheckBox Content="使用本地图标（按 icon 字段名自动匹配 *.png）"
+                              IsChecked="{Binding Settings.UseLocalIcons, Mode=TwoWay}"/>
+                    <StackPanel IsEnabled="{Binding Settings.UseLocalIcons}" Spacing="4">
+                        <TextBlock Text="图标文件夹（相对插件目录，或填绝对路径）：" FontSize="12"/>
+                        <DockPanel>
+                            <Button Content="浏览..." DockPanel.Dock="Right" Margin="6,0,0,0"
+                                    Click="BrowseButton_OnClick"/>
+                            <TextBox Text="{Binding Settings.LocalIconFolder, Mode=TwoWay}" Watermark="例如 Icons"/>
+                        </DockPanel>
+                    </StackPanel>
+                    <TextBlock Text="不勾选则使用深圳市气象局官方图标（在线加载）。" FontSize="12" Opacity="0.7"/>
+
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" Margin="0,4,0,0">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="尺寸" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <StackPanel Grid.Row="0" Grid.Column="1" Spacing="2">
+                            <Slider Minimum="12" Maximum="48" Value="{Binding Settings.IconSize, Mode=TwoWay}"/>
+                            <TextBlock Text="{Binding Settings.IconSize, StringFormat={}{0:F0} px}" FontSize="12" Opacity="0.7"/>
+                        </StackPanel>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="圆角" VerticalAlignment="Center" Margin="0,8,8,0"/>
+                        <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2" Margin="0,8,0,0">
+                            <Slider Minimum="0" Maximum="24" Value="{Binding Settings.CornerRadius, Mode=TwoWay}"/>
+                            <TextBlock Text="{Binding Settings.CornerRadius, StringFormat={}{0:F0} px（0 为方角）}" FontSize="12" Opacity="0.7"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Expander>
+
+            <!-- 区域过滤 -->
+            <Expander IsExpanded="False">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="&#xE713;" FontFamily="{StaticResource FluentIcon}" FontSize="15" VerticalAlignment="Center"/>
+                        <TextBlock Text="区域过滤" FontWeight="Bold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Expander.Header>
+                <StackPanel Spacing="6" Margin="4,6,4,2">
+                    <TextBox Text="{Binding Settings.RegionFilter, Mode=TwoWay}"
+                             Watermark="用空格分隔，如：南山 福田 宝安"/>
+                    <TextBlock Text="仅当预警发布区域包含其中任一关键词时才显示；留空则显示全部。"
+                               FontSize="12" TextWrapping="Wrap" Opacity="0.7"/>
+                </StackPanel>
+            </Expander>
+
+            <!-- 无预警占位 -->
+            <Expander IsExpanded="False">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="&#xE71D;" FontFamily="{StaticResource FluentIcon}" FontSize="15" VerticalAlignment="Center"/>
+                        <TextBlock Text="无预警占位" FontWeight="Bold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Expander.Header>
+                <StackPanel Spacing="8" Margin="4,6,4,2">
+                    <TextBlock Text="无预警时，以下两项可独立开关。" FontSize="12" Opacity="0.7"/>
+                    <CheckBox Content="显示占位文字" IsChecked="{Binding Settings.ShowPlaceholderText, Mode=TwoWay}"/>
+                    <StackPanel IsEnabled="{Binding Settings.ShowPlaceholderText}" Spacing="4">
+                        <TextBox Text="{Binding Settings.PlaceholderText, Mode=TwoWay}" Watermark="占位文字，如：无预警"/>
+                    </StackPanel>
+                    <CheckBox Content="显示占位图片" IsChecked="{Binding Settings.ShowPlaceholderImage, Mode=TwoWay}"/>
+                    <StackPanel IsEnabled="{Binding Settings.ShowPlaceholderImage}" Spacing="4">
+                        <DockPanel>
+                            <Button Content="浏览..." DockPanel.Dock="Right" Margin="6,0,0,0"
+                                    Click="BrowsePlaceholderButton_OnClick"/>
+                            <TextBox Text="{Binding Settings.PlaceholderImagePath, Mode=TwoWay}" Watermark="占位图片本地路径"/>
+                        </DockPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Expander>
+        </StackPanel>
+    </ScrollViewer>
+</controls:ComponentBase>

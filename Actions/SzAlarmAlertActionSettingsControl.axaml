@@ -1,0 +1,65 @@
+<controls:ActionSettingsControlBase x:TypeArguments="models:SzAlarmAlertActionSettings"
+                                    x:Class="SzAlarmPlugin.Actions.SzAlarmAlertActionSettingsControl"
+                                    xmlns="https://github.com/avaloniaui"
+                                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                                    xmlns:controls="clr-namespace:ClassIsland.Core.Abstractions.Controls;assembly=ClassIsland.Core"
+                                    xmlns:models="clr-namespace:SzAlarmPlugin.Models">
+    <controls:ActionSettingsControlBase.Resources>
+        <FontFamily x:Key="FluentIcon">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+    </controls:ActionSettingsControlBase.Resources>
+    <ScrollViewer>
+        <StackPanel Margin="8" Spacing="12">
+            <!-- 播报策略 -->
+            <StackPanel Spacing="4">
+                <TextBlock Text="播报策略" FontWeight="Bold"/>
+                <ComboBox x:Name="ModeBox" SelectionChanged="OnSelectionChanged">
+                    <ComboBoxItem Content="每次触发都播报"/>
+                    <ComboBoxItem Content="同一预警仅首次播报（去重）"/>
+                </ComboBox>
+                <TextBlock Text="“仅首次”模式下，同一预警标识只播报一次，记录持久化保存。"
+                           FontSize="12" TextWrapping="Wrap" Opacity="0.7"/>
+                <Button x:Name="ClearBtn" Content="清除已播记录" Margin="0,6,0,0" Click="ClearBtn_OnClick"/>
+            </StackPanel>
+
+            <!-- 显示与滚动 -->
+            <StackPanel Spacing="6">
+                <TextBlock Text="显示与滚动" FontWeight="Bold"/>
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <TextBlock Text="文字滚动速度（1 ~ 20）" FontSize="12" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="SpeedVal" FontSize="12" VerticalAlignment="Center" Opacity="0.85"/>
+                </Grid>
+                <Slider x:Name="SpeedSlider" Minimum="1" Maximum="20"
+                        TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OnSliderChanged"/>
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,4,0,0">
+                    <TextBlock Text="最大显示时长（10 ~ 90 秒）" FontSize="12" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="DurVal" FontSize="12" VerticalAlignment="Center" Opacity="0.85"/>
+                </Grid>
+                <Slider x:Name="DurSlider" Minimum="10" Maximum="90"
+                        TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OnSliderChanged"/>
+            </StackPanel>
+
+            <!-- 筛选 -->
+            <StackPanel Spacing="4">
+                <TextBlock Text="仅播报符合以下条件的预警（留空=全部）" FontWeight="Bold"/>
+                <TextBlock Text="地名关键词" FontSize="12" Opacity="0.8"/>
+                <TextBox x:Name="TbRegions" TextChanged="OnInputChanged"
+                         Watermark="如：南山 福田 宝安"/>
+                <TextBlock Text="灾害种类" FontSize="12" Opacity="0.8" Margin="0,4,0,0"/>
+                <TextBox x:Name="TbTypes" TextChanged="OnInputChanged"
+                         Watermark="如：台风 暴雨 雷雨大风"/>
+                <TextBlock Text="预警级别（白 蓝 黄 橙 红）" FontSize="12" Opacity="0.8" Margin="0,4,0,0"/>
+                <TextBox x:Name="TbLevels" TextChanged="OnInputChanged"
+                         Watermark="如：红 橙"/>
+            </StackPanel>
+
+            <Border Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                    CornerRadius="6" Padding="10" Opacity="0.9">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="&#xE71D;" FontFamily="{StaticResource FluentIcon}" FontSize="15" VerticalAlignment="Center"/>
+                    <TextBlock Text="此行动不会自动弹窗，需由触发器（如托盘菜单）手动触发。"
+                               FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</controls:ActionSettingsControlBase>

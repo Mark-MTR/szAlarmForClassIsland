@@ -1,0 +1,8 @@
+id: com.szalarm.plugin
+name: 深圳气象预警
+description: 从深圳市气象台获取实时预警信号，显示在主界面（独立组件，可配置图标来源/显示范围/文字/尺寸/占位）。
+entranceAssembly: "SzAlarmPlugin.dll"
+url: https://weather.121.com.cn/
+apiVersion: 2.0.0.0
+version: 1.2.0.0
+author: you

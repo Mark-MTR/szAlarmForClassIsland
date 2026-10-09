@@ -1,0 +1,67 @@
+<controls:ComponentBase x:TypeArguments="models:SzAlarmComponentSettings"
+                        x:Class="SzAlarmPlugin.Components.SzAlarmComponent"
+                        x:Name="Root"
+                        xmlns="https://github.com/avaloniaui"
+                        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                        xmlns:controls="clr-namespace:ClassIsland.Core.Abstractions.Controls;assembly=ClassIsland.Core"
+                        xmlns:models="clr-namespace:SzAlarmPlugin.Models"
+                        xmlns:conv="clr-namespace:SzAlarmPlugin.Converters"
+                        AttachedToVisualTree="Control_OnAttachedToVisualTree">
+    <controls:ComponentBase.Resources>
+        <conv:DoubleToCornerRadiusConverter x:Key="DoubleToCornerRadius"/>
+    </controls:ComponentBase.Resources>
+    <Grid VerticalAlignment="Stretch">
+        <ItemsControl x:Name="AlarmItems">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                        <Border CornerRadius="{Binding #Root.Settings.CornerRadius, Converter={StaticResource DoubleToCornerRadius}}"
+                                Background="Transparent"
+                                ClipToBounds="True"
+                                IsVisible="{Binding ShowIcon}"
+                                VerticalAlignment="Center">
+                            <Image Source="{Binding IconBitmap}"
+                                   Height="{Binding #Root.Settings.IconSize}"
+                                   Width="{Binding #Root.Settings.IconSize}"
+                                   VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="{Binding Item.AlarmType}"
+                                   IsVisible="{Binding #Root.Settings.ShowText}"
+                                   VerticalAlignment="Center"
+                                   FontSize="{DynamicResource MainWindowSecondaryFontSize}"/>
+                        <TextBlock Text="{Binding Item.AlarmColor}"
+                                   IsVisible="{Binding #Root.Settings.ShowLevel}"
+                                   VerticalAlignment="Center"
+                                   FontSize="{DynamicResource MainWindowSecondaryFontSize}"/>
+                        <ToolTip.Tip>
+                            <TextBlock Text="{Binding Item.Str}" TextWrapping="Wrap" MaxWidth="320"/>
+                        </ToolTip.Tip>
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- 无预警占位 -->
+        <StackPanel x:Name="PlaceholderPanel"
+                    Orientation="Horizontal" Spacing="4"
+                    VerticalAlignment="Center"
+                    IsVisible="False">
+            <Border x:Name="PlaceholderImageBorder"
+                    CornerRadius="{Binding #Root.Settings.CornerRadius, Converter={StaticResource DoubleToCornerRadius}}"
+                    Background="Transparent"
+                    ClipToBounds="True"
+                    VerticalAlignment="Center"
+                    IsVisible="False">
+                <Image x:Name="PlaceholderImage" VerticalAlignment="Center"/>
+            </Border>
+            <TextBlock x:Name="PlaceholderTextBlock"
+                       VerticalAlignment="Center"
+                       FontSize="{DynamicResource MainWindowSecondaryFontSize}"/>
+        </StackPanel>
+    </Grid>
+</controls:ComponentBase>
