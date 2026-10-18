@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "JzciYtmWmbw=",
+  "dgSpecHash": "DvJ0h13rKgI=",
   "success": true,
-  "projectFilePath": "C:\\Users\\HiteVision\\Downloads\\临时终\\SzAlarmPlugin\\SzAlarmPlugin.csproj",
+  "projectFilePath": "C:\\Users\\HiteVision\\Downloads\\SzAlarmPlugin\\SzAlarmPlugin.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\HiteVision\\.nuget\\packages\\asyncimageloader.avalonia\\3.3.0\\asyncimageloader.avalonia.3.3.0.nupkg.sha512",
     "C:\\Users\\HiteVision\\.nuget\\packages\\avalonia\\11.3.6\\avalonia.11.3.6.nupkg.sha512",

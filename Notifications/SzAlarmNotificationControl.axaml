@@ -4,33 +4,40 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              x:Class="SzAlarmPlugin.Notifications.SzAlarmNotificationControl">
-    <!-- 卡片拉伸填满承载区（提醒区/课表宽度），上限 720，滚动栏即可跟随变宽 -->
+    <!-- 卡片拉伸填满承载区（提醒区/课表宽度），上限 720，滚动栏即可跟随变宽。
+         字号写死为显式值（与主题默认 MainWindowEmphasizedFontSize/BodyFontSize 一致），
+         保证控件在脱离视觉树时也能被正确测量，从而算准滚动时长。 -->
     <Border CornerRadius="10"
             Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
             Padding="14,12"
             MaxWidth="720"
             HorizontalAlignment="Stretch">
         <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="12" VerticalAlignment="Center">
-            <!-- 左侧预警图标 -->
-            <Border Grid.Column="0" Width="44" Height="44"
+            <!-- 左侧预警图标：边框与图标同尺寸（28），图标铺满贴边，
+                 圆角由代码按「提醒」设置动态应用，圆角精确落在图标四角。 -->
+            <Border Grid.Column="0" x:Name="IconBorder"
+                    Width="28" Height="28"
                     Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
-                    CornerRadius="8">
-                <Image x:Name="Icon" Width="36" Height="36" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    CornerRadius="8"
+                    ClipToBounds="True"
+                    VerticalAlignment="Center">
+                <Image x:Name="Icon" Width="28" Height="28" Stretch="UniformToFill"
+                       VerticalAlignment="Center" HorizontalAlignment="Center"/>
             </Border>
 
             <!-- 中间：灾种+级别标题（强调字号，单行，垂直居中，不裁切） -->
             <TextBlock Grid.Column="1" x:Name="Title"
-                       FontSize="{DynamicResource FontSizeEmphasis}"
+                       FontSize="18"
                        FontWeight="Bold"
                        VerticalAlignment="Center" TextWrapping="NoWrap" MaxLines="1"
                        LineHeight="32" ClipToBounds="False"/>
 
-            <!-- 右侧：单行横向滚动正文（正文字号，跟随可用宽度，至少 240）。
+            <!-- 右侧：单行横向滚动正文（正文字号，跟随可用宽度）。
                  仅做“水平方向”裁切（由代码设置 Clip 几何），纵向完全不裁，避免顶部被切。 -->
             <Border Grid.Column="2" x:Name="ScrollViewport" MinWidth="240"
                     HorizontalAlignment="Stretch" VerticalAlignment="Center">
                 <TextBlock x:Name="ScrollText"
-                           FontSize="{DynamicResource FontSizeContent}"
+                           FontSize="16"
                            VerticalAlignment="Center" HorizontalAlignment="Left"
                            TextWrapping="NoWrap" MaxLines="1"
                            ClipToBounds="False"/>

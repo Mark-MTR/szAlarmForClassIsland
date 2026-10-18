@@ -4,9 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Reflection;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading;
+using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -16,37 +15,41 @@ using SzAlarmPlugin.Models;
 namespace SzAlarmPlugin.Services;
 
 /// <summary>
-/// 定时从深圳市气象台拉取预警信号，并对外暴露当前生效预警及图标。
+/// 预警聚合服务：定时拉取所有已注册的数据源，合并成统一格式（AlarmItem），
+/// 对外提供预警列表与图标加载。本身不关心任何具体城市 / 接口的细节。
+///
+/// 接新城市 / 新 API 时，只需：
+///   1. 实现 IAlarmSource（照 ShenZhenAlarmSource 抄一份改改）；
+///   2. 在构造函数里 new 一个加进 _sources 列表。
+/// 组件、规则、提醒会自动合并展示，无需再改其它地方。
 /// </summary>
 public class SzAlarmService : ObservableObject, IHostedService
 {
     /// <summary>当前服务实例（供规则处理器等静态场景访问实时预警数据）。</summary>
     public static SzAlarmService? Current { get; private set; }
 
+    private readonly HttpClient _http = new();
+    private readonly List<IAlarmSource> _sources;
+    private Timer? _timer;
+
+    // 远程图标缓存：key = 图标完整地址 IconUrl（不同源可能同名不同图，故用地址区分）。
+    private readonly Dictionary<string, Bitmap?> _remoteCache = new();
+    // 本地图标缓存：key = 图标名 IconName（按 {IconName}.png 从本地文件夹加载）。
+    private readonly Dictionary<string, Bitmap?> _localCache = new();
+
     public SzAlarmService()
     {
         Current = this;
+        // 数据源清单：以后新增城市 / API 在这里 new 一个加进来即可。
+        _sources = new List<IAlarmSource>
+        {
+            new ShenZhenAlarmSource(),
+        };
     }
 
-    private static readonly Uri ApiUri = new("https://weather.121.com.cn/data_cache/szWeather/alarm/szAlarm.json");
-    // 预警图标按 icon 字段名拼接（官方图标源）
-    private static readonly string IconBase = "https://weather.sz.gov.cn/alarmIcon/";
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        // 接口部分数字字段会以字符串形式返回（如 ingnalNum:"548"），允许从字符串读数字
-        NumberHandling = JsonNumberHandling.AllowReadingFromString
-    };
-
-    private readonly HttpClient _http = new();
-    private Timer? _timer;
-    private readonly Dictionary<string, Bitmap?> _remoteCache = new();
-    private readonly Dictionary<string, Bitmap?> _localCache = new();
-
-    private List<SzAlarmItem> _rawItems = new();
-    /// <summary>当前生效预警（已按官方优先级排序）。</summary>
-    public List<SzAlarmItem> RawItems
+    private List<AlarmItem> _rawItems = new();
+    /// <summary>当前所有数据源合并后的生效预警（按优先级 + 级别排序）。</summary>
+    public List<AlarmItem> RawItems
     {
         get => _rawItems;
         private set => SetProperty(ref _rawItems, value);
@@ -80,69 +83,76 @@ public class SzAlarmService : ObservableObject, IHostedService
 
     public async Task RefreshAsync()
     {
-        SzAlarmRoot? root = null;
-        try
+        // 并发拉取所有数据源，各自失败互不影响。
+        var all = new List<AlarmItem>();
+        var anySuccess = false;
+        foreach (var src in _sources)
         {
-            var json = await _http.GetStringAsync(ApiUri);
-            root = JsonSerializer.Deserialize<SzAlarmRoot>(json, JsonOptions);
-        }
-        catch (Exception)
-        {
-            return; // 网络异常时保留上次数据，静默处理
+            try
+            {
+                var items = await src.FetchAsync();
+                if (items is not null) all.AddRange(items);
+                anySuccess = true;
+            }
+            catch (Exception)
+            {
+                // 单个源失败，跳过，保留其它源结果
+            }
         }
 
-        if (root?.SubAlarm is null) return;
+        // 所有数据源都拉取失败时，保留上次的预警信息，绝不用空内容覆盖。
+        if (!anySuccess)
+            return;
 
-        // 按官方优先级排序，同级按颜色级别兜底
-        var items = root.SubAlarm
+        // 统一排序：源内优先级 → 级别。
+        var sorted = all
             .OrderBy(a => a.Order)
-            .ThenByDescending(Level)
+            .ThenByDescending(a => a.Level)
             .ToList();
 
-        // 预下载官方远程图标（按 icon 名缓存，避免重复下载）
-        foreach (var it in items)
+        // 预下载官方远程图标（按完整地址缓存，避免重复下载）。
+        foreach (var it in sorted)
         {
-            if (it.Icon is { } iconName && !_remoteCache.ContainsKey(iconName))
+            if (string.IsNullOrEmpty(it.IconUrl) || _remoteCache.ContainsKey(it.IconUrl))
+                continue;
+            try
             {
-                try
-                {
-                    var bytes = await _http.GetByteArrayAsync(IconBase + iconName + ".png");
-                    using var ms = new MemoryStream(bytes);
-                    _remoteCache[iconName] = new Bitmap(ms);
-                }
-                catch (Exception)
-                {
-                    _remoteCache[iconName] = null; // 下载失败则留空，不阻断显示
-                }
+                var bytes = await _http.GetByteArrayAsync(it.IconUrl);
+                using var ms = new MemoryStream(bytes);
+                _remoteCache[it.IconUrl] = new Bitmap(ms);
+            }
+            catch (Exception)
+            {
+                _remoteCache[it.IconUrl] = null; // 下载失败则留空，不阻断显示
             }
         }
 
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            RawItems = items;
-            HasAlarm = items.Count > 0;
+            RawItems = sorted;
+            HasAlarm = sorted.Count > 0;
         });
     }
 
     /// <summary>
-    /// 按当前设置返回图标位图：本地优先或官方远程。
+    /// 按设置返回图标位图：本地优先或官方远程。
     /// </summary>
-    public Bitmap? GetIcon(SzAlarmItem item, bool useLocal, string? localFolder)
+    public Bitmap? GetIcon(AlarmItem item, bool useLocal, string? localFolder)
     {
-        if (item.Icon is not { } iconName) return null;
+        if (string.IsNullOrEmpty(item.IconName)) return null;
 
         if (useLocal)
         {
-            if (_localCache.TryGetValue(iconName, out var local)) return local;
+            if (_localCache.TryGetValue(item.IconName, out var local)) return local;
             try
             {
                 var folder = ResolveFolder(localFolder);
-                var path = Path.Combine(folder, iconName + ".png");
+                var path = Path.Combine(folder, item.IconName + ".png");
                 if (File.Exists(path))
                 {
                     using var fs = File.OpenRead(path);
                     var bm = new Bitmap(fs);
-                    _localCache[iconName] = bm;
+                    _localCache[item.IconName] = bm;
                     return bm;
                 }
             }
@@ -150,11 +160,12 @@ public class SzAlarmService : ObservableObject, IHostedService
             {
                 // 忽略，回退到无图标
             }
-            _localCache[iconName] = null;
+            _localCache[item.IconName] = null;
             return null;
         }
 
-        return _remoteCache.TryGetValue(iconName, out var remote) ? remote : null;
+        if (string.IsNullOrEmpty(item.IconUrl)) return null;
+        return _remoteCache.TryGetValue(item.IconUrl, out var remote) ? remote : null;
     }
 
     private static string ResolveFolder(string? folder)
@@ -171,13 +182,4 @@ public class SzAlarmService : ObservableObject, IHostedService
         foreach (var b in cache.Values) b?.Dispose();
         cache.Clear();
     }
-
-    private static int Level(SzAlarmItem a) => a.AlarmColor switch
-    {
-        "红色" => 4,
-        "橙色" => 3,
-        "黄色" => 2,
-        "蓝色" => 1,
-        _ => 0
-    };
 }

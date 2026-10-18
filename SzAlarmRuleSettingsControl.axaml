@@ -38,7 +38,7 @@
                 <StackPanel Spacing="4">
                     <TextBlock Text="灾害种类" FontWeight="Bold"/>
                     <TextBox x:Name="TbTypes"
-                             Watermark="如：台风 暴雨 雷雨大风（留空=所有种类）"
+                             Watermark="如：台风 暴雨 雷雨大风（留空=所有种类，严格相等）"
                              TextChanged="OnInputChanged"/>
                 </StackPanel>
 
@@ -47,6 +47,10 @@
                     <TextBox x:Name="TbLevels"
                              Watermark="白 蓝 黄 橙 红（留空=所有级别）"
                              TextChanged="OnInputChanged"/>
+                    <CheckBox x:Name="CbExclusive" Margin="0,4,0,0"
+                              Content="有且仅有：不允许出现其它未列出的灾害种类"/>
+                    <TextBlock Text="开启后：当前所有生效预警的种类都必须命中上面的「灾害种类」，且至少一条满足地名/级别，才判定为真。用于「全市只有台风预警才触发」这类场景（需至少填一个灾害种类）。"
+                               FontSize="12" TextWrapping="Wrap" Opacity="0.7"/>
                     <TextBlock Text="三者为「与」关系：地名 ∩ 种类 ∩ 级别 同时满足，才判定为「存在预警」。"
                                FontSize="12" TextWrapping="Wrap" Opacity="0.7"/>
                 </StackPanel>

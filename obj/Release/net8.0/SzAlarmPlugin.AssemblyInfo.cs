@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SzAlarmPlugin")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+cacf585c08ed407be3e4de954707fd5eedccac60")]
 [assembly: System.Reflection.AssemblyProductAttribute("SzAlarmPlugin")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SzAlarmPlugin")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

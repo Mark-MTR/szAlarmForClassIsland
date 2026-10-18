@@ -13,6 +13,7 @@ namespace SzAlarmPlugin.Components;
 
 /// <summary>
 /// 深圳气象预警组件：图标 + 文字，多预警横排，行为由组件设置控制。
+/// 数据来自 SzAlarmService（统一格式 AlarmItem）。
 /// </summary>
 [ComponentInfo("5C3E1F2A-9B4D-4E6A-8C7B-1D2E3F4A5B6C", "深圳气象预警", "\uE7BA",
     "显示深圳市气象台发布的实时预警信号。")]
@@ -63,9 +64,16 @@ public partial class SzAlarmComponent : ComponentBase<SzAlarmComponentSettings>
             .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToList();
 
+        // 1.5) 预警类型排除（空格分隔关键词，黑名单：类型与关键词严格相等才忽略该条）
+        var typeKeywords = (Settings.TypeFilter ?? "")
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
+
         var filtered = AlarmService.RawItems
             .Where(it => keywords.Count == 0 ||
-                         keywords.Any(k => (it.AlarmArea ?? "").Contains(k)))
+                         keywords.Any(k => (it.Area ?? "").Contains(k)))
+            .Where(it => typeKeywords.Count == 0 ||
+                         !typeKeywords.Any(k => string.Equals((it.Type ?? "").Trim(), k, StringComparison.Ordinal)))
             .ToList();
 
         // 2) 过滤后再按显示模式选择
@@ -75,20 +83,20 @@ public partial class SzAlarmComponent : ComponentBase<SzAlarmComponentSettings>
             case 1: // 最高级别（含并列）
                 if (filtered.Count > 0)
                 {
-                    var max = filtered.Max(Level);
-                    displayed = filtered.Where(a => Level(a) == max).ToList();
+                    var max = filtered.Max(a => a.Level);
+                    displayed = filtered.Where(a => a.Level == max).ToList();
                 }
                 break;
             case 2: // 最新一条
                 displayed = filtered
-                    .OrderByDescending(a => DateTime.TryParse(a.Date, out var d) ? d : DateTime.MinValue)
+                    .OrderByDescending(a => a.PublishedAt ?? DateTime.MinValue)
                     .Take(1)
                     .ToList();
                 break;
             case 3: // 每种预警中级别最高的一条
                 displayed = filtered
-                    .GroupBy(a => a.AlarmType)
-                    .Select(g => g.OrderByDescending(Level).First())
+                    .GroupBy(a => a.Type)
+                    .Select(g => g.OrderByDescending(a => a.Level).First())
                     .ToList();
                 break;
             default: // 0 = 所有
@@ -137,13 +145,4 @@ public partial class SzAlarmComponent : ComponentBase<SzAlarmComponentSettings>
         PlaceholderImage.Height = size;
         PlaceholderImage.Width = size;
     }
-
-    private static int Level(SzAlarmItem a) => a.AlarmColor switch
-    {
-        "红色" => 4,
-        "橙色" => 3,
-        "黄色" => 2,
-        "蓝色" => 1,
-        _ => 0
-    };
 }

@@ -15,24 +15,27 @@ build_property.PlatformNeutralAssembly =
 build_property.EnforceExtendedAnalyzerRules = 
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = SzAlarmPlugin
-build_property.ProjectDir = C:\Users\HiteVision\Downloads\临时终\SzAlarmPlugin\
+build_property.ProjectDir = C:\Users\HiteVision\Downloads\SzAlarmPlugin\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 
-[C:/Users/HiteVision/Downloads/临时终/SzAlarmPlugin/Actions/SzAlarmAlertActionSettingsControl.axaml]
+[C:/Users/HiteVision/Downloads/SzAlarmPlugin/Actions/SzAlarmAlertActionSettingsControl.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
-[C:/Users/HiteVision/Downloads/临时终/SzAlarmPlugin/Components/SzAlarmComponent.axaml]
+[C:/Users/HiteVision/Downloads/SzAlarmPlugin/Components/SzAlarmComponent.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
-[C:/Users/HiteVision/Downloads/临时终/SzAlarmPlugin/Components/SzAlarmComponentSettingsControl.axaml]
+[C:/Users/HiteVision/Downloads/SzAlarmPlugin/Components/SzAlarmComponentSettingsControl.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
-[C:/Users/HiteVision/Downloads/临时终/SzAlarmPlugin/Notifications/SzAlarmMaskControl.axaml]
+[C:/Users/HiteVision/Downloads/SzAlarmPlugin/Notifications/SzAlarmMaskControl.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
-[C:/Users/HiteVision/Downloads/临时终/SzAlarmPlugin/Notifications/SzAlarmNotificationControl.axaml]
+[C:/Users/HiteVision/Downloads/SzAlarmPlugin/Notifications/SzAlarmNotificationControl.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
-[C:/Users/HiteVision/Downloads/临时终/SzAlarmPlugin/SzAlarmRuleSettingsControl.axaml]
+[C:/Users/HiteVision/Downloads/SzAlarmPlugin/Notifications/SzAlarmNotificationProviderSettingsControl.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[C:/Users/HiteVision/Downloads/SzAlarmPlugin/SzAlarmRuleSettingsControl.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml

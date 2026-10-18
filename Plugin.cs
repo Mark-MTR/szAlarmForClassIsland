@@ -27,8 +27,8 @@ public class Plugin : PluginBase
         services.AddRule<SzAlarmRuleSettings, SzAlarmRuleSettingsControl>(
             "szalarm.hasAlarm", "存在深圳气象预警", "\ue7ba", SzAlarmRules.HasAlarmHandler);
 
-        // 注册预警提醒提供方（仅提供弹窗能力，不自动触发）
-        services.AddNotificationProvider<SzAlarmNotificationProvider>();
+        // 注册预警提醒提供方（仅提供弹窗能力，不自动触发；带设置面板：图标来源与圆角）
+        services.AddNotificationProvider<SzAlarmNotificationProvider, SzAlarmNotificationProviderSettingsControl>();
 
         // 注册行动：手动触发时弹出深圳气象预警提醒
         services.AddAction<SzAlarmAlertAction, SzAlarmAlertActionSettingsControl>();

@@ -29,6 +29,7 @@ public partial class SzAlarmRuleSettingsControl : RuleSettingsControlBase<SzAlar
         _timer.Tick += (_, _) => UpdatePreview();
         Loaded += OnLoaded;
         Unloaded += (_, _) => _timer.Stop();
+		CbExclusive.Click += OnExclusiveChanged;
     }
 
     private void OnLoaded(object? sender, RoutedEventArgs e)
@@ -39,6 +40,7 @@ public partial class SzAlarmRuleSettingsControl : RuleSettingsControlBase<SzAlar
             TbRegions.Text = Settings.Regions ?? "";
             TbTypes.Text = Settings.Types ?? "";
             TbLevels.Text = Settings.Levels ?? "";
+            CbExclusive.IsChecked = Settings.ExclusiveType;
         }
         UpdatePreview();
         _timer.Start();
@@ -53,6 +55,13 @@ public partial class SzAlarmRuleSettingsControl : RuleSettingsControlBase<SzAlar
         Settings.Levels = TbLevels.Text;
         UpdatePreview();
     }
+	
+	private void OnExclusiveChanged(object? sender, RoutedEventArgs e)
+	{
+		if (Settings is null) return;
+		Settings.ExclusiveType = CbExclusive.IsChecked == true;
+		UpdatePreview();
+	}
 
     private void UpdatePreview()
     {
@@ -66,8 +75,16 @@ public partial class SzAlarmRuleSettingsControl : RuleSettingsControlBase<SzAlar
         var typePart = types.Count == 0 ? "任意灾害" : "种类含「" + string.Join("、", types) + "」";
         var levelPart = levels.Count == 0 ? "任意级别" : "级别为「" + string.Join("、", levels) + "」";
 
-        PreviewSentence.Text =
-            $"当 {regionPart} 有 {levelPart} 的 {typePart} 预警时，判定为「存在预警」。三者需同时满足。";
+        if (Settings.ExclusiveType)
+        {
+            PreviewSentence.Text =
+                $"当所有生效预警的种类都属于「{string.Join("、", types)}」，且其中至少一条满足 {regionPart}、{levelPart} 时，判定为「存在预警」（有且仅有）。";
+        }
+        else
+        {
+            PreviewSentence.Text =
+                $"当 {regionPart} 有 {levelPart} 的 {typePart} 预警时，判定为「存在预警」。三者需同时满足。";
+        }
 
         var count = SzAlarmRules.CountMatches(Settings);
         if (SzAlarmService.Current is null)

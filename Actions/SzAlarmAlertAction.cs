@@ -11,6 +11,7 @@ namespace SzAlarmPlugin.Actions;
 
 /// <summary>
 /// 行动：手动触发时弹出深圳气象预警提醒（不自动弹窗）。
+/// 数据来自 SzAlarmService（统一格式 AlarmItem）。
 /// </summary>
 [ActionInfo("szalarm.alert", "深圳气象预警提醒", "\ue7ba", defaultGroupToMenu: "深圳气象预警")]
 public class SzAlarmAlertAction : ActionBase<SzAlarmAlertActionSettings>
@@ -29,35 +30,33 @@ public class SzAlarmAlertAction : ActionBase<SzAlarmAlertActionSettings>
         var items = Filter(svc.RawItems, Settings);
         if (items.Count == 0)
         {
-            await provider.SendNoAlarmAsync();
+            // 无预警：直接略过，不弹任何提示。
             return;
         }
 
+        // SendAlertAsync 现在【先同步入队，再返回】，await 它可保证预警在本行动内就排好队，
+        // 不会延后到行动组末尾。是否继续等待“播报结束”由复选框决定。
         foreach (var it in items)
-            await provider.SendAlertAsync(it, Settings.AnnounceMode, Settings);
+        {
+            var request = await provider.SendAlertAsync(it, Settings.AnnounceMode, Settings);
+            if (Settings.WaitForCompletion)
+                await provider.WaitForCompletionAsync(request);
+        }
     }
 
-    private static List<SzAlarmItem> Filter(IEnumerable<SzAlarmItem> all, SzAlarmAlertActionSettings s)
+    private static List<AlarmItem> Filter(IEnumerable<AlarmItem> all, SzAlarmAlertActionSettings s)
     {
         var regions = Split(s.Regions);
         var types = Split(s.Types);
-        var levels = Split(s.Levels).Select(CoreColor).ToHashSet();
+        var levels = Split(s.Levels).Select(AlarmLevels.CoreColor).ToHashSet();
 
         return all.Where(it =>
-            (regions.Count == 0 || regions.Any(r => (it.AlarmArea ?? "").Contains(r))) &&
-            (types.Count == 0 || types.Any(t => (it.AlarmType ?? "").Contains(t))) &&
-            (levels.Count == 0 || levels.Contains(CoreColor(it.AlarmColor)))
+            (regions.Count == 0 || regions.Any(r => (it.Area ?? "").Contains(r))) &&
+            (types.Count == 0 || types.Any(t => (it.Type ?? "").Contains(t))) &&
+            (levels.Count == 0 || levels.Contains(AlarmLevels.CoreColor(it.Color)))
         ).ToList();
     }
 
     private static List<string> Split(string? s) =>
         (s ?? "").Split(' ', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries).ToList();
-
-    private static string? CoreColor(string? c)
-    {
-        if (string.IsNullOrEmpty(c)) return null;
-        foreach (var k in new[] { "白", "蓝", "黄", "橙", "红" })
-            if (c.Contains(k)) return k;
-        return null;
-    }
 }

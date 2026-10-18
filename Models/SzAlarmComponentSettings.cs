@@ -8,7 +8,7 @@ namespace SzAlarmPlugin.Models;
 public class SzAlarmComponentSettings : ObservableObject
 {
     /// <summary>
-    /// 显示模式（在按地区过滤之后生效）：
+    /// 显示模式（在按地区/类型过滤之后生效）：
     /// 0 = 所有预警；1 = 最高级别（含并列）；2 = 最新一条；3 = 每种预警中级别最高的一条。
     /// </summary>
     private int _displayMode = 0;
@@ -83,6 +83,17 @@ public class SzAlarmComponentSettings : ObservableObject
     {
         get => _regionFilter;
         set { if (value == _regionFilter) return; _regionFilter = value; OnPropertyChanged(); }
+    }
+
+    /// <summary>
+    /// 预警类型排除关键词，空格分隔。当预警类型与其中任一关键词完全相等时，
+    /// 忽略（不显示）这条预警（“雷暴”不会误伤“雷暴大风”）；留空表示不排除任何类型。
+    /// </summary>
+    private string? _typeFilter;
+    public string? TypeFilter
+    {
+        get => _typeFilter;
+        set { if (value == _typeFilter) return; _typeFilter = value; OnPropertyChanged(); }
     }
 
     /// <summary>无预警时是否显示占位文字。</summary>

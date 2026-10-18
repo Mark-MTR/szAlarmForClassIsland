@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
+using System.ComponentModel;
 using System.IO;
-using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Media;
@@ -17,11 +16,13 @@ namespace SzAlarmPlugin.Notifications;
 
 /// <summary>
 /// 预警提醒提供方：仅提供“按原生风格弹提醒”的能力，本身不自动触发。
-/// 由 SzAlarmAlertAction 在手动触发时调用 SendAlertAsync / SendNoAlarmAsync。
+/// 由 SzAlarmAlertAction 在手动触发时调用 SendAlertAsync。
+/// 图标来源（官方远程 / 本地文件夹）与图标圆角由「提醒」设置面板配置。
+/// 依赖统一格式 AlarmItem。
 /// </summary>
-[NotificationProviderInfo("4B2D1A9E-7C5F-4E3B-8A1D-3F6C9B2E5D71", "深圳气象预警提醒", "\ue7ba",
+[NotificationProviderInfo("4B2D1A9E-7C5F-4E3B-8A1D-3F6C9B2E5D71", "深圳气象预警提醒", "",
     "手动触发时弹出深圳市气象台实时预警提醒。")]
-public class SzAlarmNotificationProvider : NotificationProviderBase
+public class SzAlarmNotificationProvider : NotificationProviderBase<SzAlarmNotificationProviderSettings>
 {
     /// <summary>当前提供方实例（供行动等静态访问）。</summary>
     public static SzAlarmNotificationProvider? Current { get; private set; }
@@ -36,6 +37,17 @@ public class SzAlarmNotificationProvider : NotificationProviderBase
     public SzAlarmNotificationProvider()
     {
         Current = this;
+        // 切换图标来源/文件夹后清本地图标缓存，下次弹提醒时按新路径重新加载。
+        Settings.PropertyChanged += OnSettingsChanged;
+    }
+
+    private void OnSettingsChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(SzAlarmNotificationProviderSettings.UseLocalIcons)
+            or nameof(SzAlarmNotificationProviderSettings.LocalIconFolder))
+        {
+            SzAlarmService.Current?.ClearLocalCache();
+        }
     }
 
     /// <summary>是否应当播报该预警（去重逻辑）。</summary>
@@ -66,93 +78,68 @@ public class SzAlarmNotificationProvider : NotificationProviderBase
         }
     }
 
-    /// <summary>弹出一条预警提醒（自动按去重策略 + 计算时长处理）。</summary>
-    public async Task SendAlertAsync(SzAlarmItem item, int mode, SzAlarmAlertActionSettings? settings = null)
+    /// <summary>
+    /// 弹出一条预警提醒（自动按去重策略处理；滚动时长由卡片按“速度优先”算定并回传）。
+    /// 返回已入队的提醒请求，调用方可选择 await 其播放完成（WaitForCompletionAsync）。
+    ///
+    /// 关键：在 UI 线程一次性构造控件并【同步入队】。此前分三次 InvokeAsync 且走
+    /// ShowNotificationAsync（其内部对入队是 fire-and-forget 派发），不等待时入队被延后
+    /// 多个调度周期，队列序号偏大，导致预警弹窗排到行动组末尾才显示。
+    /// </summary>
+    public async Task<NotificationRequest?> SendAlertAsync(AlarmItem item, int mode, SzAlarmAlertActionSettings? settings = null)
     {
-        var id = $"{item.AlarmType}|{item.AlarmColor}|{item.AlarmArea}";
-        if (!ShouldAnnounce(id, mode)) return;
+        var id = $"{item.Type}|{item.Color}|{item.Area}|{item.DisplayName}";
+        if (!ShouldAnnounce(id, mode)) return null;
 
-        var icon = SzAlarmService.Current?.GetIcon(item, false, null);
+        // 图标来源与圆角由「提醒」设置（本提供方 Settings）决定。
+        var icon = SzAlarmService.Current?.GetIcon(item, Settings.UseLocalIcons, Settings.LocalIconFolder);
+
+        var scrollSpeed = settings?.ScrollSpeed ?? 5;
+        var maxDuration = settings?.MaxDuration ?? 15;
+        var cornerRadius = Settings.CornerRadius;
 
         // UserControl 必须在 UI 线程构造，否则 InitializeComponent 会失败。
-        var control = await Dispatcher.UIThread.InvokeAsync(() =>
+        // SetData 里会一次性算好最终时长 DurationSeconds = min(滚完所需时间, 最大显示时长)，
+        // 作为提醒倒计时(Duration)的唯一来源——倒计时与滚动动画严格同步。
+        var request = await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            var c = new SzAlarmNotificationControl();
-            c.SetData(item, icon, settings?.ScrollSpeed ?? 5);
-            return c;
+            var control = new SzAlarmNotificationControl();
+            control.SetData(item, icon, scrollSpeed, maxDuration, cornerRadius);
+
+            var maskControl = new SzAlarmMaskControl();
+            maskControl.SetData(item, icon, cornerRadius);
+
+            var overlay = new NotificationContent(control)
+            {
+                SpeechContent = item.Text ?? item.DisplayName,
+                Duration = TimeSpan.FromSeconds(control.DurationSeconds),
+                Color = LevelBrush(item.Color)
+            };
+
+            var mask = new NotificationContent(maskControl);
+
+            var req = new NotificationRequest
+            {
+                MaskContent = mask,
+                OverlayContent = overlay
+            };
+
+            // 同步入队：与内置“显示提醒”走的是同一个底层路径，但跳过
+            // ShowNotificationAsync 的 fire-and-forget 派发，队列顺序立即确定。
+            ShowNotification(req);
+            return req;
         });
 
-        var maskControl = await Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            var m = new SzAlarmMaskControl();
-            m.SetData(item, icon);
-            return m;
-        });
-
-        // 时长：先算滚动所需时间；小于上限用计算值，超过用上限。
-        var clean = CleanText(item.Str);
-        var maxDuration = settings?.MaxDuration ?? 15;
-        var duration = ComputeDuration(clean, settings?.ScrollSpeed ?? 5, maxDuration);
-
-        var overlay = new NotificationContent(control)
-        {
-            SpeechContent = item.Str ?? $"{item.AlarmType}{item.AlarmColor}预警",
-            Duration = duration,
-            Color = LevelBrush(item.AlarmColor)
-        };
-
-        var mask = new NotificationContent(maskControl);
-
-        var request = new NotificationRequest
-        {
-            MaskContent = mask,
-            OverlayContent = overlay
-        };
-
-        await ShowNotificationAsync(request);
         MarkAnnounced(id, mode);
+        return request;
     }
 
-    /// <summary>无预警时的友好提示。</summary>
-    public async Task SendNoAlarmAsync()
+    /// <summary>等待提醒播放完成（用于“等待预警播报结束”模式）。</summary>
+    public async Task WaitForCompletionAsync(NotificationRequest? request)
     {
-        var request = new NotificationRequest
-        {
-            MaskContent = NotificationContent.CreateSimpleTextContent("当前深圳市无气象预警"),
-            OverlayContent = null
-        };
-        await ShowNotificationAsync(request);
-    }
-
-    private static string CleanText(string? s) =>
-        (s ?? "").Replace("\r\n", " ").Replace('\n', ' ').Replace('\r', ' ').Trim();
-
-    /// <summary>
-    /// 计算提醒正文时长：
-    /// 放得下（静态）→ 用上限时长；放不下（需滚动两遍）→ 用滚动所需时长，但与上限取小。
-    /// </summary>
-    private static TimeSpan ComputeDuration(string clean, int speed, double maxDuration)
-    {
-        if (string.IsNullOrEmpty(clean)) return TimeSpan.FromSeconds(maxDuration);
-
-        var typeface = Typeface.Default;
-        double WidthOf(string t)
-        {
-            var ft = new FormattedText(t, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
-                typeface, 14, Brushes.Black);
-            return ft.Width;
-        }
-
-        var single = WidthOf(clean);
-        // 滚动区可用宽度估算：卡片最大 640，减图标(44)+间距+标题+内边距 ≈ 420
-        const double estViewport = 420;
-        if (single <= estViewport + 4)
-            return TimeSpan.FromSeconds(maxDuration); // 放得下：静态显示，按上限停留
-
-        var total = WidthOf(clean + "　　　　" + clean); // 两遍（全角空格间隔）
-        var pxPerSec = Math.Clamp(speed, 1, 20) * 25.0; // 速度滑块 → 像素/秒
-        var scroll = total / pxPerSec;
-        return TimeSpan.FromSeconds(Math.Min(scroll, maxDuration));
+        if (request is null) return;
+        // CompletedToken 是 public 的（CompletedTokenSource 是 internal，插件不可访问）。
+        await Task.Run(() => request.CompletedToken.WaitHandle.WaitOne());
     }
 
     private static IBrush LevelBrush(string? color) => color switch

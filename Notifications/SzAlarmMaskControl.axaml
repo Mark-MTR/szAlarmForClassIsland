@@ -6,9 +6,13 @@
              x:Class="SzAlarmPlugin.Notifications.SzAlarmMaskControl">
     <StackPanel Orientation="Horizontal" Spacing="10"
                 VerticalAlignment="Center" HorizontalAlignment="Center">
-        <Border Width="30" Height="30" CornerRadius="6"
-                Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}">
-            <Image x:Name="Icon" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+        <!-- 遮罩小图标：边框与图标同尺寸（22），铺满贴边，圆角由代码按「提醒」设置应用 -->
+        <Border x:Name="IconBorder" Width="22" Height="22"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                CornerRadius="6"
+                ClipToBounds="True">
+            <Image x:Name="Icon" Width="22" Height="22" Stretch="UniformToFill"
+                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
         </Border>
         <TextBlock x:Name="Text" FontWeight="Bold"
                    FontSize="{DynamicResource FontSizeEmphasis}"

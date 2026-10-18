@@ -1,0 +1,49 @@
+<ci:NotificationProviderControlBase x:Class="SzAlarmPlugin.Notifications.SzAlarmNotificationProviderSettingsControl"
+             x:TypeArguments="models:SzAlarmNotificationProviderSettings"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:ci="http://classisland.tech/schemas/xaml/core"
+             xmlns:models="clr-namespace:SzAlarmPlugin.Models"
+             xmlns:local="clr-namespace:SzAlarmPlugin.Notifications"
+             mc:Ignorable="d"
+             d:DesignHeight="360" d:DesignWidth="520">
+    <Grid DataContext="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=local:SzAlarmNotificationProviderSettingsControl}}">
+        <ScrollViewer>
+            <StackPanel Margin="8" Spacing="8">
+                <!-- 头部说明 -->
+                <Border Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                        CornerRadius="6" Padding="12,10" Margin="0,0,0,4">
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="图标与外观" FontWeight="Bold" FontSize="14"/>
+                        <TextBlock Text="配置预警提醒中预警图标的来源与圆角样式。" FontSize="12" Opacity="0.7"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- 图标来源 -->
+                <CheckBox Content="使用本地图标（按 icon 字段名自动匹配 *.png）"
+                          IsChecked="{Binding Settings.UseLocalIcons, Mode=TwoWay}"/>
+                <StackPanel IsEnabled="{Binding Settings.UseLocalIcons}" Spacing="4" Margin="0,0,0,4">
+                    <TextBlock Text="图标文件夹（相对插件目录，或填绝对路径）：" FontSize="12"/>
+                    <DockPanel>
+                        <Button Content="浏览..." DockPanel.Dock="Right" Margin="6,0,0,0"
+                                Click="BrowseButton_OnClick"/>
+                        <TextBox Text="{Binding Settings.LocalIconFolder, Mode=TwoWay}" Watermark="例如 Icons"/>
+                    </DockPanel>
+                </StackPanel>
+                <TextBlock Text="不勾选则使用深圳市气象局官方图标（在线加载）。"
+                           FontSize="12" TextWrapping="Wrap" Opacity="0.7"/>
+
+                <!-- 圆角 -->
+                <TextBlock Text="图标圆角" FontWeight="Bold" Margin="0,8,0,0"/>
+                <StackPanel Spacing="2">
+                    <Slider Minimum="0" Maximum="16" TickFrequency="1" IsSnapToTickEnabled="True"
+                            Value="{Binding Settings.CornerRadius, Mode=TwoWay}"/>
+                    <TextBlock Text="{Binding Settings.CornerRadius, StringFormat={}{0:F0} px（0 为方角）}"
+                               FontSize="12" Opacity="0.7"/>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</ci:NotificationProviderControlBase>
